@@ -249,67 +249,64 @@ public:
         mDetector.detect(inImage, markers, camParam, marker_size, false);
         // for each marker, draw info and its boundaries in the image
         for (std::size_t i = 0; i < markers.size(); ++i) {
-          // only publishing the selected marker
-          if (markers[i].id == marker_id) {
-            tf2::Transform transform = aruco_ros::arucoMarker2Tf2(markers[i]);
-            tf2::Stamped<tf2::Transform> cameraToReference;
-            cameraToReference.setIdentity();
+          tf2::Transform transform = aruco_ros::arucoMarker2Tf2(markers[i]);
+          tf2::Stamped<tf2::Transform> cameraToReference;
+          cameraToReference.setIdentity();
 
-            if (reference_frame != camera_frame) {
-              geometry_msgs::msg::TransformStamped transform;
-              getTransform(reference_frame, camera_frame, transform);
-              tf2::fromMsg(transform, cameraToReference);
-            }
-
-            transform = static_cast<tf2::Transform>(cameraToReference) *
-              static_cast<tf2::Transform>(rightToLeft) *
-              transform;
-
-            geometry_msgs::msg::TransformStamped stampedTransform;
-            stampedTransform.header.frame_id = reference_frame;
-            stampedTransform.header.stamp = curr_stamp;
-            stampedTransform.child_frame_id = marker_frame;
-            tf2::toMsg(transform, stampedTransform.transform);
-            tf_broadcaster_->sendTransform(stampedTransform);
-            geometry_msgs::msg::PoseStamped poseMsg;
-            poseMsg.header = stampedTransform.header;
-            tf2::toMsg(transform, poseMsg.pose);
-            poseMsg.header.frame_id = reference_frame;
-            poseMsg.header.stamp = curr_stamp;
-            pose_pub->publish(poseMsg);
-
-            transform_pub->publish(stampedTransform);
-
-            geometry_msgs::msg::Vector3Stamped positionMsg;
-            positionMsg.header = stampedTransform.header;
-            positionMsg.vector = stampedTransform.transform.translation;
-            position_pub->publish(positionMsg);
-
-            geometry_msgs::msg::PointStamped pixelMsg;
-            pixelMsg.header = stampedTransform.header;
-            pixelMsg.point.x = markers[i].getCenter().x;
-            pixelMsg.point.y = markers[i].getCenter().y;
-            pixelMsg.point.z = 0;
-            pixel_pub->publish(pixelMsg);
-
-            // publish rviz marker representing the ArUco marker patch
-            visualization_msgs::msg::Marker visMarker;
-            visMarker.header = stampedTransform.header;
-            visMarker.id = 1;
-            visMarker.type = visualization_msgs::msg::Marker::CUBE;
-            visMarker.action = visualization_msgs::msg::Marker::ADD;
-            visMarker.pose = poseMsg.pose;
-            visMarker.scale.x = marker_size;
-            visMarker.scale.y = marker_size;
-            visMarker.scale.z = 0.001;
-            visMarker.color.r = 1.0;
-            visMarker.color.g = 0;
-            visMarker.color.b = 0;
-            visMarker.color.a = 1.0;
-            visMarker.lifetime = builtin_interfaces::msg::Duration();
-            visMarker.lifetime.sec = 3;
-            marker_pub->publish(visMarker);
+          if (reference_frame != camera_frame) {
+            geometry_msgs::msg::TransformStamped transform;
+            getTransform(reference_frame, camera_frame, transform);
+            tf2::fromMsg(transform, cameraToReference);
           }
+
+          transform = static_cast<tf2::Transform>(cameraToReference) *
+            static_cast<tf2::Transform>(rightToLeft) *
+            transform;
+
+          geometry_msgs::msg::TransformStamped stampedTransform;
+          stampedTransform.header.frame_id = reference_frame;
+          stampedTransform.header.stamp = curr_stamp;
+          stampedTransform.child_frame_id = marker_frame;
+          tf2::toMsg(transform, stampedTransform.transform);
+          tf_broadcaster_->sendTransform(stampedTransform);
+          geometry_msgs::msg::PoseStamped poseMsg;
+          poseMsg.header = stampedTransform.header;
+          tf2::toMsg(transform, poseMsg.pose);
+          poseMsg.header.frame_id = std::to_string(markers[i].id);
+          poseMsg.header.stamp = curr_stamp;
+          pose_pub->publish(poseMsg);
+
+          transform_pub->publish(stampedTransform);
+
+          geometry_msgs::msg::Vector3Stamped positionMsg;
+          positionMsg.header = stampedTransform.header;
+          positionMsg.vector = stampedTransform.transform.translation;
+          position_pub->publish(positionMsg);
+
+          geometry_msgs::msg::PointStamped pixelMsg;
+          pixelMsg.header = stampedTransform.header;
+          pixelMsg.point.x = markers[i].getCenter().x;
+          pixelMsg.point.y = markers[i].getCenter().y;
+          pixelMsg.point.z = 0;
+          pixel_pub->publish(pixelMsg);
+
+          // publish rviz marker representing the ArUco marker patch
+          visualization_msgs::msg::Marker visMarker;
+          visMarker.header = stampedTransform.header;
+          visMarker.id = 1;
+          visMarker.type = visualization_msgs::msg::Marker::CUBE;
+          visMarker.action = visualization_msgs::msg::Marker::ADD;
+          visMarker.pose = poseMsg.pose;
+          visMarker.scale.x = marker_size;
+          visMarker.scale.y = marker_size;
+          visMarker.scale.z = 0.001;
+          visMarker.color.r = 1.0;
+          visMarker.color.g = 0;
+          visMarker.color.b = 0;
+          visMarker.color.a = 1.0;
+          visMarker.lifetime = builtin_interfaces::msg::Duration();
+          visMarker.lifetime.sec = 3;
+          marker_pub->publish(visMarker);
           // but drawing all the detected markers
           markers[i].draw(inImage, cv::Scalar(0, 0, 255), 2);
         }
